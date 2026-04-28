@@ -20,9 +20,9 @@ public class PoliciesController : ControllerBase
     }
 
     [HttpGet("api/policies")]
-    public async Task<IActionResult> GetAll([FromQuery] PolicyType? type, [FromQuery] PolicyStatus? status)
+    public async Task<IActionResult> GetAll([FromQuery] PolicyType? type, [FromQuery] PolicyStatus? status, [FromQuery] string? idNumber)
     {
-        var result = await _policyService.GetAllAsync(type, status);
+        var result = await _policyService.GetAllAsync(type, status, idNumber);
         return Ok(result);
     }
 

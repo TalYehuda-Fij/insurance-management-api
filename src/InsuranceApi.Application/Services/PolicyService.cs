@@ -54,9 +54,17 @@ public class PolicyService
         return ToResponse(policy);
     }
 
-    public async Task<IEnumerable<PolicyResponse>> GetAllAsync(PolicyType? type, PolicyStatus? status)
+    public async Task<IEnumerable<PolicyResponse>> GetAllAsync(PolicyType? type, PolicyStatus? status, string? idNumber)
     {
-        var policies = await _policyRepository.GetAllAsync(type, status);
+        Guid? customerId = null;
+        if (idNumber is not null)
+        {
+            var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+                ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
+            customerId = customer.Id;
+        }
+
+        var policies = await _policyRepository.GetAllAsync(type, status, customerId);
         return policies.Select(ToResponse);
     }
 

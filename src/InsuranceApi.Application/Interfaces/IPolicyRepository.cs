@@ -6,7 +6,7 @@ namespace InsuranceApi.Application.Interfaces;
 public interface IPolicyRepository
 {
     Task<Policy?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Policy>> GetAllAsync(PolicyType? type, PolicyStatus? status);
+    Task<IEnumerable<Policy>> GetAllAsync(PolicyType? type, PolicyStatus? status, Guid? customerId);
     Task<bool> HasActiveOfTypeAsync(Guid customerId, PolicyType type);
     Task AddAsync(Policy policy);
     Task UpdateAsync(Policy policy);

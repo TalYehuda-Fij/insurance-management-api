@@ -45,14 +45,14 @@ We assume the IdNumber (like a passport or national ID) is unique for each custo
 |--------|------|-------------|
 | POST | /api/customers | Create customer |
 | GET | /api/customers | List all customers |
-| GET | /api/customers/{id} | Get customer by ID |
-| PUT | /api/customers/{id} | Update customer |
+| GET | /api/customers/{idNumber} | Get customer by IDNumber |
+| PUT | /api/customers/{idNumber} | Update customer |
 
 ### Policies
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | /api/customers/{customerId}/policies | Create policy for customer |
+| POST | /api/customers/{idNumber}/policies | Create policy for customer |
 | GET | /api/policies?type=Car&status=Active | List policies (optional filters) |
 | GET | /api/policies/{id} | Get policy by ID |
 | PUT | /api/policies/{id} | Update policy |

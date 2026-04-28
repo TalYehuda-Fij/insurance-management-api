@@ -12,10 +12,10 @@ public class PoliciesController : ControllerBase
 
     public PoliciesController(PolicyService policyService) => _policyService = policyService;
 
-    [HttpPost("api/customers/{customerId:guid}/policies")]
-    public async Task<IActionResult> Create(Guid customerId, [FromBody] CreatePolicyRequest request)
+    [HttpPost("api/customers/{idNumber}/policies")]
+    public async Task<IActionResult> Create(string idNumber, [FromBody] CreatePolicyRequest request)
     {
-        var result = await _policyService.CreateAsync(customerId, request);
+        var result = await _policyService.CreateAsync(idNumber, request);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 

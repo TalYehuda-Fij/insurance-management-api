@@ -14,6 +14,9 @@ public class CustomerRepository : ICustomerRepository
     public Task<Customer?> GetByIdAsync(Guid id) =>
         _db.Customers.Include(c => c.Policies).FirstOrDefaultAsync(c => c.Id == id);
 
+    public Task<Customer?> GetByIdNumberAsync(string idNumber) =>
+        _db.Customers.Include(c => c.Policies).FirstOrDefaultAsync(c => c.IdNumber == idNumber);
+
     public async Task<IEnumerable<Customer>> GetAllAsync() =>
         await _db.Customers.AsNoTracking().ToListAsync();
 

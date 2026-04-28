@@ -19,12 +19,14 @@ public class PolicyServiceTests
         _sut = new PolicyService(_policyRepo, _customerRepo);
     }
 
-    private static Customer AdultCustomer(Guid id) => new()
+    private const string AdultIdNumber = "ID-ADULT-123";
+
+    private static Customer AdultCustomer() => new()
     {
-        Id = id,
+        Id = Guid.NewGuid(),
         FirstName = "Jane",
         LastName = "Doe",
-        IdNumber = "123",
+        IdNumber = AdultIdNumber,
         DateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-30)),
         Phone = "0500000000",
         CreatedAt = DateTime.UtcNow
@@ -42,22 +44,22 @@ public class PolicyServiceTests
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenCustomerAlreadyHasActivePolicyOfSameType()
     {
-        var customerId = Guid.NewGuid();
-        _customerRepo.GetByIdAsync(customerId).Returns(AdultCustomer(customerId));
-        _policyRepo.HasActiveOfTypeAsync(customerId, PolicyType.Car).Returns(true);
+        var customer = AdultCustomer();
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(customer);
+        _policyRepo.HasActiveOfTypeAsync(customer.Id, PolicyType.Car).Returns(true);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(customerId, FutureCarPolicy()));
+            _sut.CreateAsync(AdultIdNumber, FutureCarPolicy()));
     }
 
     [Fact]
     public async Task CreateAsync_ShouldSucceed_WhenCustomerHasNoActivePolicyOfSameType()
     {
-        var customerId = Guid.NewGuid();
-        _customerRepo.GetByIdAsync(customerId).Returns(AdultCustomer(customerId));
-        _policyRepo.HasActiveOfTypeAsync(customerId, PolicyType.Car).Returns(false);
+        var customer = AdultCustomer();
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(customer);
+        _policyRepo.HasActiveOfTypeAsync(customer.Id, PolicyType.Car).Returns(false);
 
-        var result = await _sut.CreateAsync(customerId, FutureCarPolicy());
+        var result = await _sut.CreateAsync(AdultIdNumber, FutureCarPolicy());
 
         Assert.Equal(PolicyType.Car, result.Type);
         Assert.Equal(PolicyStatus.Active, result.Status);
@@ -68,8 +70,7 @@ public class PolicyServiceTests
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenStartDateIsInThePast()
     {
-        var customerId = Guid.NewGuid();
-        _customerRepo.GetByIdAsync(customerId).Returns(AdultCustomer(customerId));
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
         _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
 
         var pastRequest = new CreatePolicyRequest(
@@ -80,14 +81,13 @@ public class PolicyServiceTests
         );
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(customerId, pastRequest));
+            _sut.CreateAsync(AdultIdNumber, pastRequest));
     }
 
     [Fact]
     public async Task CreateAsync_ShouldSucceed_WhenStartDateIsToday()
     {
-        var customerId = Guid.NewGuid();
-        _customerRepo.GetByIdAsync(customerId).Returns(AdultCustomer(customerId));
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
         _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
 
         var todayRequest = new CreatePolicyRequest(
@@ -97,7 +97,7 @@ public class PolicyServiceTests
             800m
         );
 
-        var result = await _sut.CreateAsync(customerId, todayRequest);
+        var result = await _sut.CreateAsync(AdultIdNumber, todayRequest);
 
         Assert.Equal(PolicyStatus.Active, result.Status);
     }
@@ -107,32 +107,31 @@ public class PolicyServiceTests
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenCustomerIsUnder18()
     {
-        var customerId = Guid.NewGuid();
+        const string minorIdNumber = "ID-MINOR-999";
         var minorCustomer = new Customer
         {
-            Id = customerId,
+            Id = Guid.NewGuid(),
             FirstName = "Young",
             LastName = "One",
-            IdNumber = "999",
+            IdNumber = minorIdNumber,
             DateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-17)),
             Phone = "0500000001",
             CreatedAt = DateTime.UtcNow
         };
 
-        _customerRepo.GetByIdAsync(customerId).Returns(minorCustomer);
+        _customerRepo.GetByIdNumberAsync(minorIdNumber).Returns(minorCustomer);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(customerId, FutureCarPolicy()));
+            _sut.CreateAsync(minorIdNumber, FutureCarPolicy()));
     }
 
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenCustomerNotFound()
     {
-        var customerId = Guid.NewGuid();
-        _customerRepo.GetByIdAsync(customerId).Returns((Customer?)null);
+        _customerRepo.GetByIdNumberAsync("UNKNOWN").Returns((Customer?)null);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            _sut.CreateAsync(customerId, FutureCarPolicy()));
+            _sut.CreateAsync("UNKNOWN", FutureCarPolicy()));
     }
 
     // --- Cancel ---

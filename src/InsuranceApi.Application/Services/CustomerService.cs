@@ -41,17 +41,17 @@ public class CustomerService
         return customers.Select(ToResponse);
     }
 
-    public async Task<CustomerResponse> GetByIdAsync(Guid id)
+    public async Task<CustomerResponse> GetByIdNumberAsync(string idNumber)
     {
-        var customer = await _customerRepository.GetByIdAsync(id)
-            ?? throw new NotFoundException($"Customer {id} not found.");
+        var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+            ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
         return ToResponse(customer);
     }
 
-    public async Task<CustomerResponse> UpdateAsync(Guid id, UpdateCustomerRequest request)
+    public async Task<CustomerResponse> UpdateAsync(string idNumber, UpdateCustomerRequest request)
     {
-        var customer = await _customerRepository.GetByIdAsync(id)
-            ?? throw new NotFoundException($"Customer {id} not found.");
+        var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+            ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
 
         customer.FirstName = request.FirstName;
         customer.LastName = request.LastName;

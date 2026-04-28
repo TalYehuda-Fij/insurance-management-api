@@ -16,7 +16,7 @@ public class CustomersController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request)
     {
         var result = await _customerService.CreateAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        return CreatedAtAction(nameof(GetByIdNumber), new { idNumber = result.IdNumber }, result);
     }
 
     [HttpGet]
@@ -26,17 +26,17 @@ public class CustomersController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{idNumber}")]
+    public async Task<IActionResult> GetByIdNumber(string idNumber)
     {
-        var result = await _customerService.GetByIdAsync(id);
+        var result = await _customerService.GetByIdNumberAsync(idNumber);
         return Ok(result);
     }
 
-    [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerRequest request)
+    [HttpPut("{idNumber}")]
+    public async Task<IActionResult> Update(string idNumber, [FromBody] UpdateCustomerRequest request)
     {
-        var result = await _customerService.UpdateAsync(id, request);
+        var result = await _customerService.UpdateAsync(idNumber, request);
         return Ok(result);
     }
 }

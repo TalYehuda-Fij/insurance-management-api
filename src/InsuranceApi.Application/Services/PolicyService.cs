@@ -17,10 +17,10 @@ public class PolicyService
         _customerRepository = customerRepository;
     }
 
-    public async Task<PolicyResponse> CreateAsync(Guid customerId, CreatePolicyRequest request)
+    public async Task<PolicyResponse> CreateAsync(string idNumber, CreatePolicyRequest request)
     {
-        var customer = await _customerRepository.GetByIdAsync(customerId)
-            ?? throw new NotFoundException($"Customer {customerId} not found.");
+        var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+            ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
 
         // Rule 3: customer must be 18+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -34,7 +34,7 @@ public class PolicyService
             throw new BusinessRuleException("Policy start date cannot be in the past.");
 
         // Rule 1: no duplicate active policy of same type
-        if (await _policyRepository.HasActiveOfTypeAsync(customerId, request.Type))
+        if (await _policyRepository.HasActiveOfTypeAsync(customer.Id, request.Type))
             throw new BusinessRuleException($"Customer already has an active {request.Type} policy.");
 
         var policy = new Policy
@@ -46,7 +46,7 @@ public class PolicyService
             EndDate = request.EndDate,
             PremiumAmount = request.PremiumAmount,
             Status = PolicyStatus.Active,
-            CustomerId = customerId,
+            CustomerId = customer.Id,
             CreatedAt = DateTime.UtcNow
         };
 

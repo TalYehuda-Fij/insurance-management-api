@@ -46,32 +46,31 @@ public class CustomerServiceTests
     }
 
     [Fact]
-    public async Task GetByIdAsync_ShouldThrow_WhenCustomerNotFound()
+    public async Task GetByIdNumberAsync_ShouldThrow_WhenCustomerNotFound()
     {
-        var id = Guid.NewGuid();
-        _customerRepo.GetByIdAsync(id).Returns((Customer?)null);
+        _customerRepo.GetByIdNumberAsync("UNKNOWN").Returns((Customer?)null);
 
-        await Assert.ThrowsAsync<NotFoundException>(() => _sut.GetByIdAsync(id));
+        await Assert.ThrowsAsync<NotFoundException>(() => _sut.GetByIdNumberAsync("UNKNOWN"));
     }
 
     [Fact]
     public async Task UpdateAsync_ShouldUpdateFields_WhenCustomerExists()
     {
-        var id = Guid.NewGuid();
+        const string idNumber = "ID999";
         var existing = new Customer
         {
-            Id = id,
+            Id = Guid.NewGuid(),
             FirstName = "Old",
             LastName = "Name",
-            IdNumber = "ID999",
+            IdNumber = idNumber,
             DateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-40)),
             Phone = "0500000000",
             CreatedAt = DateTime.UtcNow
         };
-        _customerRepo.GetByIdAsync(id).Returns(existing);
+        _customerRepo.GetByIdNumberAsync(idNumber).Returns(existing);
 
         var request = new UpdateCustomerRequest("New", "Name", "new@email.com", "0501111111");
-        var result = await _sut.UpdateAsync(id, request);
+        var result = await _sut.UpdateAsync(idNumber, request);
 
         Assert.Equal("New", result.FirstName);
         Assert.Equal("new@email.com", result.Email);

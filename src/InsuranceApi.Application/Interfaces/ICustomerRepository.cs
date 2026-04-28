@@ -5,6 +5,7 @@ namespace InsuranceApi.Application.Interfaces;
 public interface ICustomerRepository
 {
     Task<Customer?> GetByIdAsync(Guid id);
+    Task<Customer?> GetByIdNumberAsync(string idNumber);
     Task<IEnumerable<Customer>> GetAllAsync();
     Task<bool> IdNumberExistsAsync(string idNumber);
     Task AddAsync(Customer customer);

@@ -33,6 +33,10 @@ public class PolicyService
         if (request.StartDate < today)
             throw new BusinessRuleException("Policy start date cannot be in the past.");
 
+        // Rule 4: end date must be on or after start date
+        if (request.EndDate < request.StartDate)
+            throw new BusinessRuleException("Policy end date cannot be before start date.");
+
         // Rule 1: no duplicate active policy of same type
         if (await _policyRepository.HasActiveOfTypeAsync(customer.Id, request.Type))
             throw new BusinessRuleException($"Customer already has an active {request.Type} policy.");
@@ -83,6 +87,17 @@ public class PolicyService
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         if (request.StartDate < today)
             throw new BusinessRuleException("Policy start date cannot be in the past.");
+
+        if (request.EndDate < request.StartDate)
+            throw new BusinessRuleException("Policy end date cannot be before start date.");
+
+        // Re-check duplicate-active rule when an Active policy changes type.
+        if (policy.Status == PolicyStatus.Active &&
+            policy.Type != request.Type &&
+            await _policyRepository.HasActiveOfTypeAsync(policy.CustomerId, request.Type))
+        {
+            throw new BusinessRuleException($"Customer already has an active {request.Type} policy.");
+        }
 
         policy.StartDate = request.StartDate;
         policy.EndDate = request.EndDate;

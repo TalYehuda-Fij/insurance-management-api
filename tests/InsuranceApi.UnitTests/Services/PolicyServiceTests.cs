@@ -102,6 +102,25 @@ public class PolicyServiceTests
         Assert.Equal(PolicyStatus.Active, result.Status);
     }
 
+    // --- EndDate must be on or after StartDate ---
+
+    [Fact]
+    public async Task CreateAsync_ShouldThrow_WhenEndDateIsBeforeStartDate()
+    {
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
+        _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
+
+        var invalidRequest = new CreatePolicyRequest(
+            PolicyType.Home,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5)),
+            1000m
+        );
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            _sut.CreateAsync(AdultIdNumber, invalidRequest));
+    }
+
     // --- Rule 3: Customer must be 18+ ---
 
     [Fact]
@@ -132,6 +151,38 @@ public class PolicyServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
             _sut.CreateAsync("UNKNOWN", FutureCarPolicy()));
+    }
+
+    // --- Update: re-check duplicate-active rule when type changes ---
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrow_WhenChangingTypeWouldCreateDuplicateActive()
+    {
+        var policyId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var existing = new Policy
+        {
+            Id = policyId,
+            PolicyNumber = "POL-A",
+            Type = PolicyType.Health,
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            PremiumAmount = 500m,
+            Status = PolicyStatus.Active,
+            CustomerId = customerId,
+            CreatedAt = DateTime.UtcNow
+        };
+        _policyRepo.GetByIdAsync(policyId).Returns(existing);
+        _policyRepo.HasActiveOfTypeAsync(customerId, PolicyType.Car).Returns(true);
+
+        var request = new UpdatePolicyRequest(
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            500m,
+            PolicyType.Car
+        );
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.UpdateAsync(policyId, request));
     }
 
     // --- Cancel ---

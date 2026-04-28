@@ -7,8 +7,9 @@ A .NET 8 REST API for managing insurance customers and their policies.
 Make sure you have the .NET 8 SDK installed.
 
 ```bash
-cd src/InsuranceApi.Api
-dotnet run
+git clone https://github.com/TalYehuda-Fij/insurance-management-api.git
+cd insurance-management-api
+dotnet run --project src/InsuranceApi.Api
 ```
 
 The app will start on `https://localhost:7xxx` (or `http://localhost:5xxx`). 

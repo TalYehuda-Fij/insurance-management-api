@@ -23,6 +23,11 @@ public class CustomerRepository : ICustomerRepository
     public Task<bool> IdNumberExistsAsync(string idNumber) =>
         _db.Customers.AnyAsync(c => c.IdNumber == idNumber);
 
+    public Task<bool> EmailExistsAsync(string email, Guid? excludeCustomerId = null) =>
+        _db.Customers.AnyAsync(c =>
+            c.Email == email &&
+            (excludeCustomerId == null || c.Id != excludeCustomerId));
+
     public async Task AddAsync(Customer customer)
     {
         _db.Customers.Add(customer);

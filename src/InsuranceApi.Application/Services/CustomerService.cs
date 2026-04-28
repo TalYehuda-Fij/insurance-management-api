@@ -19,6 +19,10 @@ public class CustomerService
         if (await _customerRepository.IdNumberExistsAsync(request.IdNumber))
             throw new BusinessRuleException($"A customer with ID number '{request.IdNumber}' already exists.");
 
+        var normalizedEmail = NormalizeEmail(request.Email);
+        if (normalizedEmail is not null && await _customerRepository.EmailExistsAsync(normalizedEmail))
+            throw new BusinessRuleException($"A customer with email '{normalizedEmail}' already exists.");
+
         var customer = new Customer
         {
             Id = Guid.NewGuid(),
@@ -26,7 +30,7 @@ public class CustomerService
             LastName = request.LastName,
             IdNumber = request.IdNumber,
             DateOfBirth = request.DateOfBirth,
-            Email = request.Email,
+            Email = normalizedEmail,
             Phone = request.Phone,
             CreatedAt = DateTime.UtcNow
         };
@@ -53,13 +57,26 @@ public class CustomerService
         var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
             ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
 
+        var normalizedEmail = NormalizeEmail(request.Email);
+        if (normalizedEmail is not null &&
+            await _customerRepository.EmailExistsAsync(normalizedEmail, excludeCustomerId: customer.Id))
+        {
+            throw new BusinessRuleException($"A customer with email '{normalizedEmail}' already exists.");
+        }
+
         customer.FirstName = request.FirstName;
         customer.LastName = request.LastName;
-        customer.Email = request.Email;
+        customer.Email = normalizedEmail;
         customer.Phone = request.Phone;
 
         await _customerRepository.UpdateAsync(customer);
         return ToResponse(customer);
+    }
+
+    private static string? NormalizeEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return null;
+        return email.Trim().ToLowerInvariant();
     }
 
     private static CustomerResponse ToResponse(Customer c) =>

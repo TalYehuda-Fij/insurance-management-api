@@ -15,6 +15,7 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.IdNumber).IsUnique();
         builder.Property(c => c.Phone).IsRequired().HasMaxLength(20);
         builder.Property(c => c.Email).HasMaxLength(200);
+        builder.HasIndex(c => c.Email).IsUnique();
         builder.HasMany(c => c.Policies).WithOne(p => p.Customer).HasForeignKey(p => p.CustomerId);
     }
 }

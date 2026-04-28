@@ -11,32 +11,32 @@ public class CustomerRepository : ICustomerRepository
 
     public CustomerRepository(AppDbContext db) => _db = db;
 
-    public Task<Customer?> GetByIdAsync(Guid id) =>
-        _db.Customers.Include(c => c.Policies).FirstOrDefaultAsync(c => c.Id == id);
+    public Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _db.Customers.Include(c => c.Policies).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
-    public Task<Customer?> GetByIdNumberAsync(string idNumber) =>
-        _db.Customers.Include(c => c.Policies).FirstOrDefaultAsync(c => c.IdNumber == idNumber);
+    public Task<Customer?> GetByIdNumberAsync(string idNumber, CancellationToken cancellationToken = default) =>
+        _db.Customers.Include(c => c.Policies).FirstOrDefaultAsync(c => c.IdNumber == idNumber, cancellationToken);
 
-    public async Task<IEnumerable<Customer>> GetAllAsync() =>
-        await _db.Customers.AsNoTracking().ToListAsync();
+    public async Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _db.Customers.AsNoTracking().ToListAsync(cancellationToken);
 
-    public Task<bool> IdNumberExistsAsync(string idNumber) =>
-        _db.Customers.AnyAsync(c => c.IdNumber == idNumber);
+    public Task<bool> IdNumberExistsAsync(string idNumber, CancellationToken cancellationToken = default) =>
+        _db.Customers.AnyAsync(c => c.IdNumber == idNumber, cancellationToken);
 
-    public Task<bool> EmailExistsAsync(string email, Guid? excludeCustomerId = null) =>
+    public Task<bool> EmailExistsAsync(string email, Guid? excludeCustomerId = null, CancellationToken cancellationToken = default) =>
         _db.Customers.AnyAsync(c =>
             c.Email == email &&
-            (excludeCustomerId == null || c.Id != excludeCustomerId));
+            (excludeCustomerId == null || c.Id != excludeCustomerId), cancellationToken);
 
-    public async Task AddAsync(Customer customer)
+    public async Task AddAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         _db.Customers.Add(customer);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(Customer customer)
+    public async Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         _db.Customers.Update(customer);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }

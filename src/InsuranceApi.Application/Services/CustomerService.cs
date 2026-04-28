@@ -14,13 +14,13 @@ public class CustomerService
         _customerRepository = customerRepository;
     }
 
-    public async Task<CustomerResponse> CreateAsync(CreateCustomerRequest request)
+    public async Task<CustomerResponse> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
     {
-        if (await _customerRepository.IdNumberExistsAsync(request.IdNumber))
+        if (await _customerRepository.IdNumberExistsAsync(request.IdNumber, cancellationToken))
             throw new BusinessRuleException($"A customer with ID number '{request.IdNumber}' already exists.");
 
         var normalizedEmail = NormalizeEmail(request.Email);
-        if (normalizedEmail is not null && await _customerRepository.EmailExistsAsync(normalizedEmail))
+        if (normalizedEmail is not null && await _customerRepository.EmailExistsAsync(normalizedEmail, cancellationToken: cancellationToken))
             throw new BusinessRuleException($"A customer with email '{normalizedEmail}' already exists.");
 
         var customer = new Customer
@@ -35,31 +35,31 @@ public class CustomerService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _customerRepository.AddAsync(customer);
+        await _customerRepository.AddAsync(customer, cancellationToken);
         return ToResponse(customer);
     }
 
-    public async Task<IEnumerable<CustomerResponse>> GetAllAsync()
+    public async Task<IEnumerable<CustomerResponse>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var customers = await _customerRepository.GetAllAsync();
+        var customers = await _customerRepository.GetAllAsync(cancellationToken);
         return customers.Select(ToResponse);
     }
 
-    public async Task<CustomerResponse> GetByIdNumberAsync(string idNumber)
+    public async Task<CustomerResponse> GetByIdNumberAsync(string idNumber, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+        var customer = await _customerRepository.GetByIdNumberAsync(idNumber, cancellationToken)
             ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
         return ToResponse(customer);
     }
 
-    public async Task<CustomerResponse> UpdateAsync(string idNumber, UpdateCustomerRequest request)
+    public async Task<CustomerResponse> UpdateAsync(string idNumber, UpdateCustomerRequest request, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+        var customer = await _customerRepository.GetByIdNumberAsync(idNumber, cancellationToken)
             ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
 
         var normalizedEmail = NormalizeEmail(request.Email);
         if (normalizedEmail is not null &&
-            await _customerRepository.EmailExistsAsync(normalizedEmail, excludeCustomerId: customer.Id))
+            await _customerRepository.EmailExistsAsync(normalizedEmail, excludeCustomerId: customer.Id, cancellationToken: cancellationToken))
         {
             throw new BusinessRuleException($"A customer with email '{normalizedEmail}' already exists.");
         }
@@ -69,7 +69,7 @@ public class CustomerService
         customer.Email = normalizedEmail;
         customer.Phone = request.Phone;
 
-        await _customerRepository.UpdateAsync(customer);
+        await _customerRepository.UpdateAsync(customer, cancellationToken);
         return ToResponse(customer);
     }
 

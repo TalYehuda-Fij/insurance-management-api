@@ -5,9 +5,9 @@ namespace InsuranceApi.Application.Interfaces;
 
 public interface IPolicyRepository
 {
-    Task<Policy?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Policy>> GetAllAsync(PolicyType? type, PolicyStatus? status, Guid? customerId);
-    Task<bool> HasActiveOfTypeAsync(Guid customerId, PolicyType type);
-    Task AddAsync(Policy policy);
-    Task UpdateAsync(Policy policy);
+    Task<Policy?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Policy>> GetAllAsync(PolicyType? type, PolicyStatus? status, Guid? customerId, CancellationToken cancellationToken = default);
+    Task<bool> HasActiveOfTypeAsync(Guid customerId, PolicyType type, CancellationToken cancellationToken = default);
+    Task AddAsync(Policy policy, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Policy policy, CancellationToken cancellationToken = default);
 }

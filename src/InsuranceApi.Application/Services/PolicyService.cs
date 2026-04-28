@@ -18,9 +18,9 @@ public class PolicyService
         _customerRepository = customerRepository;
     }
 
-    public async Task<PolicyResponse> CreateAsync(string idNumber, CreatePolicyRequest request)
+    public async Task<PolicyResponse> CreateAsync(string idNumber, CreatePolicyRequest request, CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+        var customer = await _customerRepository.GetByIdNumberAsync(idNumber, cancellationToken)
             ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
 
         if (request.EndDate < request.StartDate)
@@ -29,7 +29,7 @@ public class PolicyService
         PolicyTypeRules.ValidatePremium(request.Type, request.PremiumAmount);
         PolicyTypeRules.ValidateDuration(request.Type, request.StartDate, request.EndDate);
 
-        if (await _policyRepository.HasActiveOfTypeAsync(customer.Id, request.Type))
+        if (await _policyRepository.HasActiveOfTypeAsync(customer.Id, request.Type, cancellationToken))
             throw new BusinessRuleException($"Customer already has an active {request.Type} policy.");
 
         var policy = new Policy
@@ -45,34 +45,34 @@ public class PolicyService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _policyRepository.AddAsync(policy);
+        await _policyRepository.AddAsync(policy, cancellationToken);
         return ToResponse(policy);
     }
 
-    public async Task<IEnumerable<PolicyResponse>> GetAllAsync(PolicyType? type, PolicyStatus? status, string? idNumber)
+    public async Task<IEnumerable<PolicyResponse>> GetAllAsync(PolicyType? type, PolicyStatus? status, string? idNumber, CancellationToken cancellationToken = default)
     {
         Guid? customerId = null;
         if (idNumber is not null)
         {
-            var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
+            var customer = await _customerRepository.GetByIdNumberAsync(idNumber, cancellationToken)
                 ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
             customerId = customer.Id;
         }
 
-        var policies = await _policyRepository.GetAllAsync(type, status, customerId);
+        var policies = await _policyRepository.GetAllAsync(type, status, customerId, cancellationToken);
         return policies.Select(ToResponse);
     }
 
-    public async Task<PolicyResponse> GetByIdAsync(Guid id)
+    public async Task<PolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var policy = await _policyRepository.GetByIdAsync(id)
+        var policy = await _policyRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"Policy {id} not found.");
         return ToResponse(policy);
     }
 
-    public async Task<PolicyResponse> UpdateAsync(Guid id, UpdatePolicyRequest request)
+    public async Task<PolicyResponse> UpdateAsync(Guid id, UpdatePolicyRequest request, CancellationToken cancellationToken = default)
     {
-        var policy = await _policyRepository.GetByIdAsync(id)
+        var policy = await _policyRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"Policy {id} not found.");
 
         if (request.EndDate < request.StartDate)
@@ -83,7 +83,7 @@ public class PolicyService
 
         if (policy.Status == PolicyStatus.Active &&
             policy.Type != request.Type &&
-            await _policyRepository.HasActiveOfTypeAsync(policy.CustomerId, request.Type))
+            await _policyRepository.HasActiveOfTypeAsync(policy.CustomerId, request.Type, cancellationToken))
         {
             throw new BusinessRuleException($"Customer already has an active {request.Type} policy.");
         }
@@ -93,20 +93,20 @@ public class PolicyService
         policy.PremiumAmount = request.PremiumAmount;
         policy.Type = request.Type;
 
-        await _policyRepository.UpdateAsync(policy);
+        await _policyRepository.UpdateAsync(policy, cancellationToken);
         return ToResponse(policy);
     }
 
-    public async Task<PolicyResponse> CancelAsync(Guid id)
+    public async Task<PolicyResponse> CancelAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var policy = await _policyRepository.GetByIdAsync(id)
+        var policy = await _policyRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"Policy {id} not found.");
 
         if (policy.Status == PolicyStatus.Cancelled)
             throw new BusinessRuleException("Policy is already cancelled.");
 
         policy.Status = PolicyStatus.Cancelled;
-        await _policyRepository.UpdateAsync(policy);
+        await _policyRepository.UpdateAsync(policy, cancellationToken);
         return ToResponse(policy);
     }
 

@@ -26,13 +26,9 @@ public class PolicyService
         if (request.EndDate < request.StartDate)
             throw new BusinessRuleException("Policy end date cannot be before start date.");
 
-        // Rule 2: premium must be within the allowed range for the policy type
         PolicyTypeRules.ValidatePremium(request.Type, request.PremiumAmount);
-
-        // Rule 3: policy duration must be within the allowed range for the policy type
         PolicyTypeRules.ValidateDuration(request.Type, request.StartDate, request.EndDate);
 
-        // Rule 1: no duplicate active policy of same type
         if (await _policyRepository.HasActiveOfTypeAsync(customer.Id, request.Type))
             throw new BusinessRuleException($"Customer already has an active {request.Type} policy.");
 
@@ -85,7 +81,6 @@ public class PolicyService
         PolicyTypeRules.ValidatePremium(request.Type, request.PremiumAmount);
         PolicyTypeRules.ValidateDuration(request.Type, request.StartDate, request.EndDate);
 
-        // Re-check duplicate-active rule when an Active policy changes type.
         if (policy.Status == PolicyStatus.Active &&
             policy.Type != request.Type &&
             await _policyRepository.HasActiveOfTypeAsync(policy.CustomerId, request.Type))

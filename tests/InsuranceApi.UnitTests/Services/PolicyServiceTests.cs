@@ -39,8 +39,6 @@ public class PolicyServiceTests
         1500m
     );
 
-    // --- Rule 1: No duplicate active policy of same type ---
-
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenCustomerAlreadyHasActivePolicyOfSameType()
     {
@@ -64,8 +62,6 @@ public class PolicyServiceTests
         Assert.Equal(PolicyType.Car, result.Type);
         Assert.Equal(PolicyStatus.Active, result.Status);
     }
-
-    // --- Rule 2: Premium must be within type-specific range ---
 
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenPremiumIsBelowTypeRange()
@@ -100,8 +96,6 @@ public class PolicyServiceTests
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _sut.CreateAsync(AdultIdNumber, overpriced));
     }
-
-    // --- Rule 3: Policy duration must be within type-specific range ---
 
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenDurationIsTooShortForType()
@@ -156,8 +150,6 @@ public class PolicyServiceTests
         Assert.Equal(PolicyStatus.Active, result.Status);
     }
 
-    // --- Other ---
-
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenEndDateIsBeforeStartDate()
     {
@@ -183,8 +175,6 @@ public class PolicyServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() =>
             _sut.CreateAsync("UNKNOWN", ValidCarPolicy()));
     }
-
-    // --- Update: re-check duplicate-active rule when type changes ---
 
     [Fact]
     public async Task UpdateAsync_ShouldThrow_WhenChangingTypeWouldCreateDuplicateActive()
@@ -215,8 +205,6 @@ public class PolicyServiceTests
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.UpdateAsync(policyId, request));
     }
-
-    // --- Cancel ---
 
     [Fact]
     public async Task CancelAsync_ShouldSetStatusToCancelled_WhenPolicyIsActive()

@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{83C17737
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsuranceApi.UnitTests", "tests\InsuranceApi.UnitTests\InsuranceApi.UnitTests.csproj", "{5F4E6A46-EBE5-4C44-8EB7-2819A541480C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsuranceApi.IntegrationTests", "tests\InsuranceApi.IntegrationTests\InsuranceApi.IntegrationTests.csproj", "{B01BDF2C-4914-4FD1-BE77-F3CCF00D992B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +48,10 @@ Global
 		{5F4E6A46-EBE5-4C44-8EB7-2819A541480C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F4E6A46-EBE5-4C44-8EB7-2819A541480C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F4E6A46-EBE5-4C44-8EB7-2819A541480C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B01BDF2C-4914-4FD1-BE77-F3CCF00D992B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B01BDF2C-4914-4FD1-BE77-F3CCF00D992B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B01BDF2C-4914-4FD1-BE77-F3CCF00D992B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B01BDF2C-4914-4FD1-BE77-F3CCF00D992B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C4ECA2FF-6643-4302-B3BD-1E040B70E5C8} = {ACAE462F-EFF2-41ED-87C3-CF3A34556B50}
@@ -53,5 +59,6 @@ Global
 		{A08BC0E3-468F-496F-8A62-A8EDE70DDF8B} = {ACAE462F-EFF2-41ED-87C3-CF3A34556B50}
 		{E124D5C5-C074-4208-856C-EE8BAC242A71} = {ACAE462F-EFF2-41ED-87C3-CF3A34556B50}
 		{5F4E6A46-EBE5-4C44-8EB7-2819A541480C} = {83C17737-32D2-4B03-B3E0-24734DB61510}
+		{B01BDF2C-4914-4FD1-BE77-F3CCF00D992B} = {83C17737-32D2-4B03-B3E0-24734DB61510}
 	EndGlobalSection
 EndGlobal

@@ -32,10 +32,10 @@ public class PolicyServiceTests
         CreatedAt = DateTime.UtcNow
     };
 
-    private static CreatePolicyRequest FutureCarPolicy() => new(
+    private static CreatePolicyRequest ValidCarPolicy() => new(
         PolicyType.Car,
         DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
-        DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+        DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
         1500m
     );
 
@@ -49,7 +49,7 @@ public class PolicyServiceTests
         _policyRepo.HasActiveOfTypeAsync(customer.Id, PolicyType.Car).Returns(true);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(AdultIdNumber, FutureCarPolicy()));
+            _sut.CreateAsync(AdultIdNumber, ValidCarPolicy()));
     }
 
     [Fact]
@@ -59,50 +59,104 @@ public class PolicyServiceTests
         _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(customer);
         _policyRepo.HasActiveOfTypeAsync(customer.Id, PolicyType.Car).Returns(false);
 
-        var result = await _sut.CreateAsync(AdultIdNumber, FutureCarPolicy());
+        var result = await _sut.CreateAsync(AdultIdNumber, ValidCarPolicy());
 
         Assert.Equal(PolicyType.Car, result.Type);
         Assert.Equal(PolicyStatus.Active, result.Status);
     }
 
-    // --- Rule 2: Start date not in past ---
+    // --- Rule 2: Premium must be within type-specific range ---
 
     [Fact]
-    public async Task CreateAsync_ShouldThrow_WhenStartDateIsInThePast()
+    public async Task CreateAsync_ShouldThrow_WhenPremiumIsBelowTypeRange()
     {
         _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
         _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
 
-        var pastRequest = new CreatePolicyRequest(
-            PolicyType.Health,
-            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
-            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-            500m
+        var underpriced = new CreatePolicyRequest(
+            PolicyType.Car,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
+            100m
         );
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(AdultIdNumber, pastRequest));
+            _sut.CreateAsync(AdultIdNumber, underpriced));
     }
 
     [Fact]
-    public async Task CreateAsync_ShouldSucceed_WhenStartDateIsToday()
+    public async Task CreateAsync_ShouldThrow_WhenPremiumIsAboveTypeRange()
     {
         _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
         _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
 
-        var todayRequest = new CreatePolicyRequest(
-            PolicyType.Life,
-            DateOnly.FromDateTime(DateTime.UtcNow),
-            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-            800m
+        var overpriced = new CreatePolicyRequest(
+            PolicyType.Health,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
+            999_999m
         );
 
-        var result = await _sut.CreateAsync(AdultIdNumber, todayRequest);
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            _sut.CreateAsync(AdultIdNumber, overpriced));
+    }
 
+    // --- Rule 3: Policy duration must be within type-specific range ---
+
+    [Fact]
+    public async Task CreateAsync_ShouldThrow_WhenDurationIsTooShortForType()
+    {
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
+        _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
+
+        var tooShort = new CreatePolicyRequest(
+            PolicyType.Car,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
+            1500m
+        );
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            _sut.CreateAsync(AdultIdNumber, tooShort));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldThrow_WhenDurationIsTooLongForType()
+    {
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
+        _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
+
+        var tooLong = new CreatePolicyRequest(
+            PolicyType.Home,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2000)),
+            5000m
+        );
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            _sut.CreateAsync(AdultIdNumber, tooLong));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldSucceed_WhenLifePolicyHasLongDuration()
+    {
+        _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
+        _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
+
+        var lifePolicy = new CreatePolicyRequest(
+            PolicyType.Life,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(365 * 20 + 1)),
+            5000m
+        );
+
+        var result = await _sut.CreateAsync(AdultIdNumber, lifePolicy);
+
+        Assert.Equal(PolicyType.Life, result.Type);
         Assert.Equal(PolicyStatus.Active, result.Status);
     }
 
-    // --- EndDate must be on or after StartDate ---
+    // --- Other ---
 
     [Fact]
     public async Task CreateAsync_ShouldThrow_WhenEndDateIsBeforeStartDate()
@@ -110,38 +164,15 @@ public class PolicyServiceTests
         _customerRepo.GetByIdNumberAsync(AdultIdNumber).Returns(AdultCustomer());
         _policyRepo.HasActiveOfTypeAsync(Arg.Any<Guid>(), Arg.Any<PolicyType>()).Returns(false);
 
-        var invalidRequest = new CreatePolicyRequest(
+        var inverted = new CreatePolicyRequest(
             PolicyType.Home,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5)),
-            1000m
+            5000m
         );
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(AdultIdNumber, invalidRequest));
-    }
-
-    // --- Rule 3: Customer must be 18+ ---
-
-    [Fact]
-    public async Task CreateAsync_ShouldThrow_WhenCustomerIsUnder18()
-    {
-        const string minorIdNumber = "ID-MINOR-999";
-        var minorCustomer = new Customer
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "Young",
-            LastName = "One",
-            IdNumber = minorIdNumber,
-            DateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-17)),
-            Phone = "0500000001",
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _customerRepo.GetByIdNumberAsync(minorIdNumber).Returns(minorCustomer);
-
-        await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(minorIdNumber, FutureCarPolicy()));
+            _sut.CreateAsync(AdultIdNumber, inverted));
     }
 
     [Fact]
@@ -150,7 +181,7 @@ public class PolicyServiceTests
         _customerRepo.GetByIdNumberAsync("UNKNOWN").Returns((Customer?)null);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            _sut.CreateAsync("UNKNOWN", FutureCarPolicy()));
+            _sut.CreateAsync("UNKNOWN", ValidCarPolicy()));
     }
 
     // --- Update: re-check duplicate-active rule when type changes ---
@@ -166,7 +197,7 @@ public class PolicyServiceTests
             PolicyNumber = "POL-A",
             Type = PolicyType.Health,
             StartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
-            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
             PremiumAmount = 500m,
             Status = PolicyStatus.Active,
             CustomerId = customerId,
@@ -177,8 +208,8 @@ public class PolicyServiceTests
 
         var request = new UpdatePolicyRequest(
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
-            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-            500m,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
+            1500m,
             PolicyType.Car
         );
 
@@ -197,7 +228,7 @@ public class PolicyServiceTests
             PolicyNumber = "POL-001",
             Type = PolicyType.Home,
             StartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
-            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
             PremiumAmount = 1200m,
             Status = PolicyStatus.Active,
             CustomerId = Guid.NewGuid(),
@@ -220,7 +251,7 @@ public class PolicyServiceTests
             PolicyNumber = "POL-002",
             Type = PolicyType.Home,
             StartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
-            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(366)),
             PremiumAmount = 1200m,
             Status = PolicyStatus.Cancelled,
             CustomerId = Guid.NewGuid(),

@@ -3,6 +3,7 @@ using InsuranceApi.Application.Interfaces;
 using InsuranceApi.Domain.Entities;
 using InsuranceApi.Domain.Enums;
 using InsuranceApi.Domain.Exceptions;
+using InsuranceApi.Domain.Rules;
 
 namespace InsuranceApi.Application.Services;
 
@@ -22,20 +23,14 @@ public class PolicyService
         var customer = await _customerRepository.GetByIdNumberAsync(idNumber)
             ?? throw new NotFoundException($"Customer with ID number '{idNumber}' not found.");
 
-        // Rule 3: customer must be 18+
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var age = today.Year - customer.DateOfBirth.Year;
-        if (customer.DateOfBirth.AddYears(age) > today) age--;
-        if (age < 18)
-            throw new BusinessRuleException("Customer must be at least 18 years old to hold a policy.");
-
-        // Rule 2: start date not in past
-        if (request.StartDate < today)
-            throw new BusinessRuleException("Policy start date cannot be in the past.");
-
-        // Rule 4: end date must be on or after start date
         if (request.EndDate < request.StartDate)
             throw new BusinessRuleException("Policy end date cannot be before start date.");
+
+        // Rule 2: premium must be within the allowed range for the policy type
+        PolicyTypeRules.ValidatePremium(request.Type, request.PremiumAmount);
+
+        // Rule 3: policy duration must be within the allowed range for the policy type
+        PolicyTypeRules.ValidateDuration(request.Type, request.StartDate, request.EndDate);
 
         // Rule 1: no duplicate active policy of same type
         if (await _policyRepository.HasActiveOfTypeAsync(customer.Id, request.Type))
@@ -84,12 +79,11 @@ public class PolicyService
         var policy = await _policyRepository.GetByIdAsync(id)
             ?? throw new NotFoundException($"Policy {id} not found.");
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        if (request.StartDate < today)
-            throw new BusinessRuleException("Policy start date cannot be in the past.");
-
         if (request.EndDate < request.StartDate)
             throw new BusinessRuleException("Policy end date cannot be before start date.");
+
+        PolicyTypeRules.ValidatePremium(request.Type, request.PremiumAmount);
+        PolicyTypeRules.ValidateDuration(request.Type, request.StartDate, request.EndDate);
 
         // Re-check duplicate-active rule when an Active policy changes type.
         if (policy.Status == PolicyStatus.Active &&
